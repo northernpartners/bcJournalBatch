@@ -62,8 +62,8 @@ Line fields (supported):
 
 See JSON request examples:
 
-- [Example payload structure](examples/exampleRequest.json)
-- [Example request body with stringified payload](examples/requestBodyStructure.json)
+- [Example payload structure](examples/payload.json)
+- [Example request body with stringified payload](examples/requestBody.json)
 
 ## Example response
 
