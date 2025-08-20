@@ -84,6 +84,13 @@ Line fields (supported):
 }
 ```
 
+> On validation issues (per-line), the corresponding set returns failedCount > 0 and a failedLines array with { index, error } entries; other sets continue unaffected.
+
+## Setup
+
+- Ensure No. Series `BCINT` exists and is valid; the app sets each auto-created batch to use it.
+- For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
+
 ## Codeunit overview
 
 - **50101** Journal Batch Handler (ServiceEnabled)
