@@ -58,6 +58,13 @@ Line fields (supported):
 > OData action takes a single string parameter named requestBody.
 > Send your JSON payload stringified inside { "requestBody": "<string>" }.
 
+## Example request
+
+See JSON request examples:
+
+- [Example payload structure](examples/requestBodyStructure.json)
+- [Example request body with stringified payload](examples/requestBodyStructure.json)
+
 ## Example response
 
 ```json

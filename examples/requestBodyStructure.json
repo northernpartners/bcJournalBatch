@@ -1,0 +1,89 @@
+{
+  "post": true,
+  "lineSets": [
+    {
+      "lines": [
+        {
+          "documentType": "Payment",
+          "documentDate": "2025-08-19",
+          "postingDate": "2025-08-19",
+          "externalDocumentNumber": "2818",
+          "accountType": "Vendor",
+          "accountNo": "95170",
+          "description": "Domestic salary",
+          "currencyCode": "DKK",
+          "amount": 102120.44,
+          "contractCode": {
+            "code": "DK-003010-KIN",
+            "name": "John Litmar"
+          },
+          "activityPeriod": "202510",
+          "balanceAccountType": "Bank Account",
+          "balanceAccountNumber": "3001"
+        }
+      ]
+    },
+    {
+      "lines": [
+        {
+          "documentType": "Payment",
+          "documentDate": "2025-08-19",
+          "postingDate": "2025-08-19",
+          "externalDocumentNumber": "2820",
+          "accountType": "Vendor",
+          "accountNo": "95170",
+          "description": "Domestic salary",
+          "currencyCode": "DKK",
+          "amount": 80835.04,
+          "contractCode": {
+            "code": "DK-003011-KIN",
+            "name": "Lærke Byttefår"
+          },
+          "activityPeriod": "202510",
+          "balanceAccountType": "Bank Account",
+          "balanceAccountNumber": "3001"
+        }
+      ]
+    },
+    {
+      "lines": [
+        {
+          "documentType": "Payment",
+          "documentDate": "2025-08-19",
+          "postingDate": "2025-08-19",
+          "externalDocumentNumber": "2821",
+          "accountType": "Vendor",
+          "accountNo": "95170",
+          "description": "Foreign salary",
+          "currencyCode": "DKK",
+          "amount": 91488.68,
+          "contractCode": {
+            "code": "DK-003012-SIS",
+            "name": "Forrest Sissons"
+          },
+          "activityPeriod": "202507",
+          "balanceAccountType": "G/L Account",
+          "balanceAccountNumber": ""
+        },
+        {
+          "documentType": "Payment",
+          "documentDate": "2025-08-19",
+          "postingDate": "2025-08-19",
+          "externalDocumentNumber": "2821",
+          "accountType": "Bank account",
+          "accountNo": "3002",
+          "description": "Foreign salary",
+          "currencyCode": "EUR",
+          "amount": -12296.87,
+          "contractCode": {
+            "code": "DK-003012-SIS",
+            "name": "Forrest Sissons"
+          },
+          "activityPeriod": "202507",
+          "balanceAccountType": "G/L Account",
+          "balanceAccountNumber": ""
+        }
+      ]
+    }
+  ]
+}
