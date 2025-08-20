@@ -57,6 +57,33 @@ Line fields (supported):
 
 > Note: request body is sent as a string parameter named requestBody per OData action signature.
 
+## Example response
+
+```json
+{
+  "success": true,
+  "batchName": "API280C8B4",
+  "sets": [
+    {
+      "success": true,
+      "documentNo": "BCINT000123",
+      "insertedCount": 1,
+      "failedCount": 0,
+      "failedLines": []
+    },
+    {
+      "success": true,
+      "documentNo": "BCINT000124",
+      "insertedCount": 1,
+      "failedCount": 0,
+      "failedLines": []
+    }
+  ],
+  "totalInserted": 2,
+  "totalFailed": 0
+}
+```
+
 ## Codeunit overview
 
 - **50101** Journal Batch Handler (ServiceEnabled)
@@ -80,7 +107,7 @@ Line fields (supported):
 
     - Responsibility: ensure dim values exist (CONTRACT, ACTPERIOD), compute/merge Dimension Set ID, apply to line.
 
-## Milestones
+## Version milestones (future releases)
 
 ### M3 — Posting (per set)
 

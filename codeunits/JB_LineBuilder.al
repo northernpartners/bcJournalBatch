@@ -20,11 +20,15 @@ codeunit 50103 "JB Line Builder"
         DocTypeTxt: Text;
         DocType: Enum "Gen. Journal Document Type";
         LineNo: Integer;
-        ValTxt: Text;
-        ContractTxt: Text;
-        ActPeriodTxt: Text;
+        DimHelper: Codeunit "JB Dimension Helpers";
         BatchHelpers: Codeunit "JB Batch Helpers";
-        DimHelpers: Codeunit "JB Dimension Helpers";
+        // dimension inputs
+        ContractCode: Code[20];
+        ContractName: Text[50];
+        HaveContract: Boolean;
+        ActPeriodCode: Code[20];
+        ActPeriodName: Text[50];
+        HaveActPeriod: Boolean;
     begin
         GenJnlLine.Init();
         GenJnlLine.Validate("Journal Template Name", TemplateName);
@@ -108,16 +112,12 @@ codeunit 50103 "JB Line Builder"
             if LineObj.Get('externalDocumentNo', Tok) and Tok.IsValue() then
                 GenJnlLine.Validate("External Document No.", Tok.AsValue().AsText());
 
-        // dimensions: contractCode & activityPeriod
-        ContractTxt := '';
-        ActPeriodTxt := '';
-        if LineObj.Get('contractCode', Tok) and Tok.IsValue() then
-            ContractTxt := Tok.AsValue().AsText();
-        if LineObj.Get('activityPeriod', Tok) and Tok.IsValue() then
-            ActPeriodTxt := Tok.AsValue().AsText();
+        // ------- dimensions: accept string or { code, name } -------
+        ParseDim(LineObj, 'contractCode', ContractCode, ContractName, HaveContract);
+        ParseDim(LineObj, 'activityPeriod', ActPeriodCode, ActPeriodName, HaveActPeriod);
 
-        if (ContractTxt <> '') or (ActPeriodTxt <> '') then
-            DimHelpers.ApplyContractAndActPeriodDims(GenJnlLine, ContractTxt, ActPeriodTxt);
+        if HaveContract or HaveActPeriod then
+            DimHelper.ApplyContractAndActPeriodDims(GenJnlLine, ContractCode, ContractName, ActPeriodCode, ActPeriodName);
 
         // finally insert
         GenJnlLine.Insert(true);
@@ -166,5 +166,50 @@ codeunit 50103 "JB Line Builder"
                 exit(E::Refund);
         end;
         exit(E::" ");
+    end;
+
+    // ---- helpers ----
+    local procedure ParseDim(LineObj: JsonObject; FieldName: Text; var CodeOut: Code[20]; var NameOut: Text[50]; var Provided: Boolean)
+    var
+        Tok: JsonToken;
+        Obj: JsonObject;
+        V: JsonValue;
+        CodeTxt: Text;
+        NameTxt: Text;
+    begin
+        Provided := false;
+        Clear(CodeOut);
+        Clear(NameOut);
+
+        if not LineObj.Get(FieldName, Tok) then
+            exit;
+
+        if Tok.IsValue() then begin
+            V := Tok.AsValue();
+            CodeTxt := V.AsText();
+            if CodeTxt <> '' then begin
+                CodeOut := CopyStr(CodeTxt, 1, MaxStrLen(CodeOut));
+                Provided := true;
+            end;
+            exit;
+        end;
+
+        if Tok.IsObject() then begin
+            Obj := Tok.AsObject();
+
+            if Obj.Get('code', Tok) and Tok.IsValue() then begin
+                CodeTxt := Tok.AsValue().AsText();
+                if CodeTxt <> '' then begin
+                    CodeOut := CopyStr(CodeTxt, 1, MaxStrLen(CodeOut));
+                    Provided := true;
+                end;
+            end;
+
+            if Obj.Get('name', Tok) and Tok.IsValue() then begin
+                NameTxt := Tok.AsValue().AsText();
+                if NameTxt <> '' then
+                    NameOut := CopyStr(NameTxt, 1, MaxStrLen(NameOut));
+            end;
+        end;
     end;
 }
