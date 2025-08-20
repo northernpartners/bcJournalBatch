@@ -55,7 +55,8 @@ Line fields (supported):
     - `contractCode`: string or { "code": string, "name": string }
     - `activityPeriod`: string or { "code": string, "name": string }
 
-> Note: request body is sent as a string parameter named requestBody per OData action signature.
+> OData action takes a single string parameter named requestBody.
+> Send your JSON payload stringified inside { "requestBody": "<string>" }.
 
 ## Example response
 
@@ -91,6 +92,15 @@ Line fields (supported):
 - Ensure No. Series `BCINT` exists and is valid; the app sets each auto-created batch to use it.
 - For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
 
+## Build & deploy
+
+1. Update app.json version.
+2.	Build: AL: Package → ./.alpackages/JournalBatch_<version>.app.
+3.	Deploy: Extension Management → Upload → Install.
+4.	Verify: $metadata contains JournalBatchHandler_PostJournalBatch.
+5.	Test with Postman (company name or id).
+
+
 ## Codeunit overview
 
 - **50101** Journal Batch Handler (ServiceEnabled)
@@ -113,6 +123,17 @@ Line fields (supported):
 - **50105** JB Dimension Helpers
 
     - Responsibility: ensure dim values exist (CONTRACT, ACTPERIOD), compute/merge Dimension Set ID, apply to line.
+
+## Troubleshooting
+
+- **404 Not Found** when calling action
+    - App not installed, codeunit not published as web service, wrong company route, or wrong environment/tenant. Confirm action appears in $metadata under JournalBatchHandler_PostJournalBatch.
+- **400 Bad Request**: Supported MIME type not found
+    - Ensure Content-Type: application/json and that body shape is { "requestBody": "<stringified-json>" }.
+- **“Journal Batch Name … DEFAULT cannot be found”**
+    - M2 auto‑creates batch if batchName empty; ensure BCINT No. Series exists.
+- **Dimensions not visible** on line
+    - Ensure CONTRACT/ACTPERIOD are mapped to Shortcut Dimension 1/2 in General Ledger Setup; otherwise they’ll be in the Dimension Set but not in visible columns.
 
 ## Version milestones (future releases)
 
