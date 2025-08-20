@@ -135,18 +135,10 @@ codeunit 50105 "JB Dimension Helpers"
                 GenJnlLine.Validate("Shortcut Dimension 1 Code", Value);
             2:
                 GenJnlLine.Validate("Shortcut Dimension 2 Code", Value);
-            3:
-                GenJnlLine.Validate("Shortcut Dimension 3 Code", Value);
-            4:
-                GenJnlLine.Validate("Shortcut Dimension 4 Code", Value);
-            5:
-                GenJnlLine.Validate("Shortcut Dimension 5 Code", Value);
-            6:
-                GenJnlLine.Validate("Shortcut Dimension 6 Code", Value);
-            7:
-                GenJnlLine.Validate("Shortcut Dimension 7 Code", Value);
-            8:
-                GenJnlLine.Validate("Shortcut Dimension 8 Code", Value);
+            else
+                // Gen. Journal Line has no direct fields for 3..8.
+                // ValidateShortcutDimCode(N, Value) already set the value in the Dimension Set.
+                exit;
         end;
     end;
 }
