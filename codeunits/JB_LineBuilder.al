@@ -1,13 +1,13 @@
 codeunit 50103 "JB Line Builder"
 {
-    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date) ok: Boolean
+    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date; var ExternalId: Text) ok: Boolean
     begin
-        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate);
+        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, ExternalId);
         if not ok then; // keep GetLastErrorText() for caller
     end;
 
     [TryFunction]
-    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date)
+    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date; var ExternalId: Text)
     var
         GenJnlLine: Record "Gen. Journal Line";
         Tok: JsonToken;
@@ -32,6 +32,11 @@ codeunit 50103 "JB Line Builder"
         PostingTxt: Text;
         LinePostingDate: Date;
     begin
+        // --- capture external id (string or number) ---
+        ExternalId := '';
+        if LineObj.Get('id', Tok) and Tok.IsValue() then
+            ExternalId := Tok.AsValue().AsText();
+
         GenJnlLine.Init();
         GenJnlLine.Validate("Journal Template Name", TemplateName);
         GenJnlLine.Validate("Journal Batch Name", BatchName);

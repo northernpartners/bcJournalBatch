@@ -118,6 +118,7 @@ codeunit 50102 "JB Core"
         LineBuilder: Codeunit "JB Line Builder";
         ResObj: JsonObject;
         ErrorsArr: JsonArray;
+        ExternalIdsArr: JsonArray;
         DocNo: Code[20];
         i: Integer;
         LineTok: JsonToken;
@@ -126,9 +127,13 @@ codeunit 50102 "JB Core"
         errTxt: Text;
         insertedCnt: Integer;
         failedCnt: Integer;
+        ExternalId: Text;
+        JVal: JsonValue;
+        IdInt: Integer;
     begin
         Clear(ResObj);
         Clear(ErrorsArr);
+        Clear(ExternalIdsArr);
         insertedCnt := 0;
         failedCnt := 0;
 
@@ -142,13 +147,22 @@ codeunit 50102 "JB Core"
                 failedCnt += 1;
             end else begin
                 LineObj := LineTok.AsObject();
-                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate);
-                if ok then
-                    insertedCnt += 1
-                else begin
+                ExternalId := '';
+                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, ExternalId);
+                if ok then begin
+                    insertedCnt += 1;
+                    if ExternalId <> '' then begin
+                        if Evaluate(IdInt, ExternalId) then
+                            JVal.SetValue(IdInt)
+                        else
+                            JVal.SetValue(ExternalId);
+                        ExternalIdsArr.Add(JVal);
+                        Clear(JVal);
+                    end;
+                end else begin
                     errTxt := GetLastErrorText();
                     if errTxt = '' then errTxt := 'Unknown error while inserting line.';
-                    AddError(ErrorsArr, i, errTxt);
+                    AddErrorWithId(ErrorsArr, i, errTxt, ExternalId);
                     failedCnt += 1;
                 end;
             end;
@@ -157,6 +171,7 @@ codeunit 50102 "JB Core"
         ResObj.Add('success', failedCnt = 0);
         ResObj.Add('documentNo', DocNo);
         ResObj.Add('insertedCount', insertedCnt);
+        ResObj.Add('externalIds', ExternalIdsArr); // NEW
         ResObj.Add('failedCount', failedCnt);
         ResObj.Add('failedLines', ErrorsArr);
         exit(ResObj);
@@ -176,6 +191,22 @@ codeunit 50102 "JB Core"
         ErrObj: JsonObject;
     begin
         ErrObj.Add('index', Index);
+        ErrObj.Add('error', Msg);
+        ErrorsArr.Add(ErrObj);
+    end;
+
+    local procedure AddErrorWithId(var ErrorsArr: JsonArray; Index: Integer; Msg: Text; ExternalId: Text)
+    var
+        ErrObj: JsonObject;
+        IdInt: Integer;
+    begin
+        ErrObj.Add('index', Index);
+        if ExternalId <> '' then begin
+            if Evaluate(IdInt, ExternalId) then
+                ErrObj.Add('id', IdInt)
+            else
+                ErrObj.Add('id', ExternalId);
+        end;
         ErrObj.Add('error', Msg);
         ErrorsArr.Add(ErrObj);
     end;

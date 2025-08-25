@@ -1,6 +1,6 @@
 # JournalBatch Extension (M2)
 
-Custom unbound OData v4 action to insert **General Journal Lines** in Business Central in **sets**, with automatic batch handling, document numbering, and dimension support.
+Custom unbound OData v4 action to insert **General Journal Lines** in Business Central in **sets**, with automatic batch handling, document numbering, dimension support, and external line IDs.
 
 ## Overview
 
@@ -34,10 +34,14 @@ Custom unbound OData v4 action to insert **General Journal Lines** in Business C
     3. Top-level `postingDate`
     4. Fallback: `WorkDate()`
 
+- **External IDs**:
+  - Each line may include an `id` field (string or number).
+  - On success, all line IDs are returned in the set response under `"externalIds"`.
+  - On failure, the error object includes the corresponding `id`.
+
 - **Error Handling**:
   - Per-line insert errors are captured and returned
   - Successful lines are still inserted; response summarizes results
-
 
 ## JSON Contract
 
@@ -48,6 +52,7 @@ Top-level keys:
 - `lines` (array) → single set of lines (backwards compatible)
 
 Line fields (supported):
+- `id` (string or number, optional; echoed in response)
 - `documentType` (string)
 - `documentDate` (date `YYYY-MM-DD`)
 - `postingDate` (date `YYYY-MM-DD`)
@@ -61,70 +66,15 @@ Line fields (supported):
 - `description` (string)
 - `contractCode`, `activityPeriod`: string or `{ "code": ..., "name": ... }`
 
-
 ## Example Payloads
-
-#### Top-level postingDate
-```json
-{
-  "requestBody": "{
-    \"postingDate\": \"2025-08-25\",
-    \"lineSets\": [
-      {
-        \"lines\": [
-          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 100 }
-        ]
-      }
-    ]
-  }"
-}
-```
-
-#### Set-level postingDate
-```json
-{
-  "requestBody": "{
-    \"lineSets\": [
-      {
-        \"postingDate\": \"2025-08-26\",
-        \"lines\": [
-          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 50 }
-        ]
-      },
-      {
-        \"postingDate\": \"2025-08-27\",
-        \"lines\": [
-          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95171\", \"amount\": 75 }
-        ]
-      }
-    ]
-  }"
-}
-```
-
-#### Line-level postingDate
-```json
-{
-  "requestBody": "{
-    \"lineSets\": [
-      {
-        \"lines\": [
-          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 25, \"postingDate\": \"2025-08-28\" },
-          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95171\", \"amount\": 35, \"postingDate\": \"2025-08-29\" }
-        ]
-      }
-    ]
-  }"
-}
-```
-
 
 See JSON request examples:
 
 - [Example payload structure](examples/payload.json)
 - [Example request body with stringified payload](examples/requestBody.json)
 
-## Example response
+
+## Example Response
 
 ```json
 {
@@ -135,21 +85,24 @@ See JSON request examples:
       "success": true,
       "documentNo": "BCINT000478",
       "insertedCount": 2,
+      "externalIds": [2007, 2008],
       "failedCount": 0,
       "failedLines": []
     },
     {
-      "success": true,
+      "success": false,
       "documentNo": "BCINT000479",
-      "insertedCount": 1,
-      "failedCount": 0,
-      "failedLines": []
+      "insertedCount": 0,
+      "externalIds": [],
+      "failedCount": 1,
+      "failedLines": [
+        { "index": 0, "id": 2009, "error": "The account number is invalid." }
+      ]
     }
   ],
-  "totalInserted": 3,
-  "totalFailed": 0
+  "totalInserted": 2,
+  "totalFailed": 1
 }
-```
 
 > On validation issues (per-line), the corresponding set returns failedCount > 0 and a failedLines array with { index, error } entries; other sets continue unaffected.
 

@@ -1,9 +1,10 @@
 {
-  "post": true,
+  "postingDate": "2025-08-19",
   "lineSets": [
     {
       "lines": [
         {
+          "id": 2000,
           "documentType": "Payment",
           "documentDate": "2025-08-19",
           "postingDate": "2025-08-19",
@@ -26,6 +27,7 @@
     {
       "lines": [
         {
+          "id": 2001,
           "documentType": "Payment",
           "documentDate": "2025-08-19",
           "postingDate": "2025-08-19",
@@ -48,6 +50,7 @@
     {
       "lines": [
         {
+          "id": 2002,
           "documentType": "Payment",
           "documentDate": "2025-08-19",
           "postingDate": "2025-08-19",
@@ -66,6 +69,7 @@
           "balanceAccountNumber": ""
         },
         {
+          "id": 2003,
           "documentType": "Payment",
           "documentDate": "2025-08-19",
           "postingDate": "2025-08-19",
