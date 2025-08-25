@@ -103,6 +103,7 @@ See JSON request examples:
   "totalInserted": 2,
   "totalFailed": 1
 }
+````
 
 > On validation issues (per-line), the corresponding set returns failedCount > 0 and a failedLines array with { index, error } entries; other sets continue unaffected.
 
