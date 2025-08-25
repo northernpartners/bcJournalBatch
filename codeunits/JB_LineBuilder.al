@@ -1,13 +1,13 @@
 codeunit 50103 "JB Line Builder"
 {
-    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]) ok: Boolean
+    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date) ok: Boolean
     begin
-        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo);
+        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate);
         if not ok then; // keep GetLastErrorText() for caller
     end;
 
     [TryFunction]
-    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20])
+    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date)
     var
         GenJnlLine: Record "Gen. Journal Line";
         Tok: JsonToken;
@@ -29,6 +29,8 @@ codeunit 50103 "JB Line Builder"
         ActPeriodCode: Code[20];
         ActPeriodName: Text[50];
         HaveActPeriod: Boolean;
+        PostingTxt: Text;
+        LinePostingDate: Date;
     begin
         GenJnlLine.Init();
         GenJnlLine.Validate("Journal Template Name", TemplateName);
@@ -54,11 +56,18 @@ codeunit 50103 "JB Line Builder"
             GenJnlLine.Validate("Document Date", D);
         end;
 
-        // postingDate
+        // posting date precedence: line > default (set/top) > WorkDate
+        LinePostingDate := 0D;
         if LineObj.Get('postingDate', Tok) and Tok.IsValue() then begin
-            if not Evaluate(D, Tok.AsValue().AsText()) then
-                Error('Invalid postingDate: %1', Tok.AsValue().AsText());
-            GenJnlLine.Validate("Posting Date", D);
+            PostingTxt := Tok.AsValue().AsText();
+            if Evaluate(LinePostingDate, PostingTxt) then
+                GenJnlLine.Validate("Posting Date", LinePostingDate);
+        end;
+        if GenJnlLine."Posting Date" = 0D then begin
+            if DefaultPostingDate <> 0D then
+                GenJnlLine.Validate("Posting Date", DefaultPostingDate)
+            else
+                GenJnlLine.Validate("Posting Date", WorkDate());
         end;
 
         // accountType
@@ -112,7 +121,7 @@ codeunit 50103 "JB Line Builder"
             if LineObj.Get('externalDocumentNo', Tok) and Tok.IsValue() then
                 GenJnlLine.Validate("External Document No.", Tok.AsValue().AsText());
 
-        // ------- dimensions: accept string or { code, name } -------
+        // ------- dimensions: string or { code, name } -------
         ParseDim(LineObj, 'contractCode', ContractCode, ContractName, HaveContract);
         ParseDim(LineObj, 'activityPeriod', ActPeriodCode, ActPeriodName, HaveActPeriod);
 

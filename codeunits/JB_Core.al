@@ -1,30 +1,46 @@
 codeunit 50102 "JB Core"
 {
-    procedure HandleMultipleSets(LineSetsArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]): JsonArray
+    procedure HandleMultipleSets(LineSetsArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]; TopPostingDate: Date): JsonArray
     var
         OutArr: JsonArray;
         SetTok: JsonToken;
         i: Integer;
-        OneObj: JsonObject;
+        SetObj: JsonObject;
         LinesTok: JsonToken;
+        DefaultPostingDate: Date;
+        SetPostingTok: JsonToken;
+        SetPostingTxt: Text;
+        SetPostingDate: Date;
     begin
         Clear(OutArr);
 
         for i := 0 to LineSetsArr.Count() - 1 do begin
             LineSetsArr.Get(i, SetTok);
 
-            Clear(OneObj);
             if not SetTok.IsObject() then begin
-                OneObj.Add('success', false);
-                OneObj.Add('error', 'lineSets[' + Format(i) + '] is not an object. Expected {"lines":[...]}');
-                OutArr.Add(OneObj);
+                OutArr.Add(MakeSetError('lineSets[' + Format(i) + '] is not an object. Expected {"lines":[...]}'));
             end else begin
-                if not SetTok.AsObject().Get('lines', LinesTok) then begin
-                    OneObj.Add('success', false);
-                    OneObj.Add('error', 'Missing "lines" in set at index ' + Format(i));
-                    OutArr.Add(OneObj);
-                end else
-                    OutArr.Add(HandleOneSet(LinesTok.AsArray(), TemplateName, BatchName));
+                SetObj := SetTok.AsObject();
+
+                if not SetObj.Get('lines', LinesTok) then begin
+                    OutArr.Add(MakeSetError('Missing "lines" in set at index ' + Format(i)));
+                end else begin
+                    // set-level postingDate (optional)
+                    SetPostingDate := 0D;
+                    if SetObj.Get('postingDate', SetPostingTok) and SetPostingTok.IsValue() then begin
+                        SetPostingTxt := SetPostingTok.AsValue().AsText();
+                        if not Evaluate(SetPostingDate, SetPostingTxt) then
+                            SetPostingDate := 0D;
+                    end;
+
+                    // precedence for default: set > top (line-level handled in Line Builder)
+                    if SetPostingDate <> 0D then
+                        DefaultPostingDate := SetPostingDate
+                    else
+                        DefaultPostingDate := TopPostingDate;
+
+                    OutArr.Add(HandleOneSet(LinesTok.AsArray(), TemplateName, BatchName, DefaultPostingDate));
+                end;
             end;
         end;
 
@@ -32,11 +48,11 @@ codeunit 50102 "JB Core"
     end;
 
     // Back-compat: single set via "lines": [...]
-    procedure HandleSingleSetAsArray(LinesArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]): JsonArray
+    procedure HandleSingleSetAsArray(LinesArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]; TopPostingDate: Date): JsonArray
     var
         OutArr: JsonArray;
     begin
-        OutArr.Add(HandleOneSet(LinesArr, TemplateName, BatchName));
+        OutArr.Add(HandleOneSet(LinesArr, TemplateName, BatchName, TopPostingDate));
         exit(OutArr);
     end;
 
@@ -96,7 +112,7 @@ codeunit 50102 "JB Core"
     end;
 
     // ------------ private ------------
-    local procedure HandleOneSet(LinesArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]): JsonObject
+    local procedure HandleOneSet(LinesArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]; DefaultPostingDate: Date): JsonObject
     var
         BatchHelpers: Codeunit "JB Batch Helpers";
         LineBuilder: Codeunit "JB Line Builder";
@@ -126,7 +142,7 @@ codeunit 50102 "JB Core"
                 failedCnt += 1;
             end else begin
                 LineObj := LineTok.AsObject();
-                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo);
+                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate);
                 if ok then
                     insertedCnt += 1
                 else begin
@@ -144,6 +160,15 @@ codeunit 50102 "JB Core"
         ResObj.Add('failedCount', failedCnt);
         ResObj.Add('failedLines', ErrorsArr);
         exit(ResObj);
+    end;
+
+    local procedure MakeSetError(Msg: Text): JsonObject
+    var
+        O: JsonObject;
+    begin
+        O.Add('success', false);
+        O.Add('error', Msg);
+        exit(O);
     end;
 
     local procedure AddError(var ErrorsArr: JsonArray; Index: Integer; Msg: Text)

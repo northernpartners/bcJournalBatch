@@ -1,64 +1,123 @@
-# Business Central Journal Batch API
+# JournalBatch Extension (M2)
 
-A custom unbound OData v4 action exposes a JSON endpoint that inserts General Journal lines into Business Central in sets, assigning one Document No. per set from the batch’s No. Series.
+Custom unbound OData v4 action to insert **General Journal Lines** in Business Central in **sets**, with automatic batch handling, document numbering, and dimension support.
 
-## Current version
+## Overview
 
-Current version is M2.
+- **Unbound OData v4 Action**:  
+  `POST /ODataV4/JournalBatchHandler_PostJournalBatch?company={CompanyName}`
 
-- **Endpoint** (unbound action)
-    - POST https://api.businesscentral.dynamics.com/v2.0/{tenant}/{environment}/ODataV4/JournalBatchHandler_PostJournalBatch?company={CompanyName}
-    - Header alternative: Company: {CompanyName}
-- **Auth:** AAD Bearer token
-- **Service:** Codeunit 50101 Journal Batch Handler ([ServiceEnabled])
-- **Template:** Fixed to BCINT
-- **Batch**
-    - If batchName provided → used.
-    - If empty/missing → a batch is auto‑created (APIXXXXXXXX) under template BCINT.
-    - The batch No. Series is set (or enforced) to BCINT.
-- **Document numbering**
-    - The app calls codeunit “No. Series” → GetNextNo on the batch’s No. Series.
-    - One Document No. per set (lines = single set; lineSets = multiple sets).
-- **Dimensions**
-    - Supports CONTRACT and ACTPERIOD.
-    - Accepts either a string or an object { code, name }:
-        - contractCode: "DK-002182-KIN" or { "code": "DK-002182-KIN", "name": "Albert Messi" }
-        - activityPeriod: "202508" or { "code": "202508", "name": "Aug 2025" }
-    - Auto‑creates missing Dimension Values with provided name (if given).
-    - If the Dimension Code (e.g., CONTRACT) is mapped to a Shortcut Dimension N (1..8) in General Ledger Setup, the line’s Shortcut Dimension field is set via ValidateShortcutDimCode(N, value) (so the visible “Contract Code”/“Activity period” columns populate). If not mapped, the value is merged into the line’s Dimension Set ID (posts correctly, but the specific column stays blank).
-- **Validation behavior**
-    - Standard Validate(...) on all mapped fields.
-    - Per‑line insert uses [TryFunction]; errors are collected and returned without failing the whole request.
-- **Out of scope in M2**
-    - Posting (Gen. Jnl.-Post), idempotency, dimension hierarchies, VAT/currency logic beyond direct field mapping, preview mode, permissionset packaging.
+- **Authentication**: AAD Bearer token
 
-## JSON payload (accepted input)
+- **Batch Handling**:
+  - Always uses **Journal Template = BCINT**
+  - If `batchName` not provided → batch auto-created (e.g. `API280C8B4`)
+  - Auto-sets batch **No. Series = BCINT**
+
+- **Document Numbering**:
+  - Each **line set** consumes one Document No. from the batch’s No. Series
+  - All lines in a set share the same Document No.
+
+- **Dimensions**:
+  - Supports `contractCode` and `activityPeriod`
+  - Accepts either a string or `{ "code": "...", "name": "..." }`
+  - Auto-creates missing dimension values
+  - If dimension is mapped as a **Shortcut Dimension** in General Ledger Setup, journal line fields (e.g. “Contract Code”, “Activity Period”) are populated.  
+    Otherwise, values are stored in the Dimension Set only.
+
+- **Dates**:
+  - **Document Date**: Source document date (e.g. invoice date, bank disposition date).  
+  - **Posting Date**: Accounting date used for G/L entries and fiscal periods. Cannot be blank.  
+  - **Precedence** (highest first):
+    1. Line-level `postingDate`
+    2. Set-level `postingDate`
+    3. Top-level `postingDate`
+    4. Fallback: `WorkDate()`
+
+- **Error Handling**:
+  - Per-line insert errors are captured and returned
+  - Successful lines are still inserted; response summarizes results
+
+
+## JSON Contract
 
 Top-level keys:
-- `batchName` (string, optional) – journal batch under BCINT; auto-created if omitted/empty.
-- `lines` (array) – single set of lines (backward compatible).
-- `lineSets` (array) – multiple sets; each set has { "lines": [...] }.
+- `batchName` (optional) → existing or auto-created under BCINT
+- `postingDate` (optional) → default for all sets/lines if not overridden
+- `lineSets` (array) → multiple sets of lines
+- `lines` (array) → single set of lines (backwards compatible)
 
 Line fields (supported):
-- `documentType` (string) – e.g., Payment, Invoice, Credit Memo, Refund.
-- `documentDate` (date YYYY-MM-DD)
-- `postingDate` (date YYYY-MM-DD)
-- `externalDocumentNumber` (string) (alias: externalDocumentNo)
-- `accountType` (string) – G_L_Account, Customer, Vendor, Bank_Account, Fixed_Asset, IC_Partner, Employee
+- `documentType` (string)
+- `documentDate` (date `YYYY-MM-DD`)
+- `postingDate` (date `YYYY-MM-DD`)
+- `externalDocumentNumber` / `externalDocumentNo`
+- `accountType` (string)
 - `accountNo` (string)
-- `balanceAccountType` (string) (alias: balAccountType)
-- `balanceAccountNumber` (string) (alias: balAccountNo)
+- `balanceAccountType` / `balAccountType`
+- `balanceAccountNumber` / `balAccountNo`
 - `currencyCode` (string)
-- `amount` (number)
+- `amount` (decimal)
 - `description` (string)
-- Dimensions
-    - `contractCode`: string or { "code": string, "name": string }
-    - `activityPeriod`: string or { "code": string, "name": string }
+- `contractCode`, `activityPeriod`: string or `{ "code": ..., "name": ... }`
 
-> OData action takes a single string parameter named requestBody.
-> Send your JSON payload stringified inside { "requestBody": "<string>" }.
 
-## Example request
+## Example Payloads
+
+#### Top-level postingDate
+```json
+{
+  "requestBody": "{
+    \"postingDate\": \"2025-08-25\",
+    \"lineSets\": [
+      {
+        \"lines\": [
+          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 100 }
+        ]
+      }
+    ]
+  }"
+}
+```
+
+#### Set-level postingDate
+```json
+{
+  "requestBody": "{
+    \"lineSets\": [
+      {
+        \"postingDate\": \"2025-08-26\",
+        \"lines\": [
+          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 50 }
+        ]
+      },
+      {
+        \"postingDate\": \"2025-08-27\",
+        \"lines\": [
+          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95171\", \"amount\": 75 }
+        ]
+      }
+    ]
+  }"
+}
+```
+
+#### Line-level postingDate
+```json
+{
+  "requestBody": "{
+    \"lineSets\": [
+      {
+        \"lines\": [
+          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95170\", \"amount\": 25, \"postingDate\": \"2025-08-28\" },
+          { \"documentType\": \"Payment\", \"accountType\": \"Vendor\", \"accountNo\": \"95171\", \"amount\": 35, \"postingDate\": \"2025-08-29\" }
+        ]
+      }
+    ]
+  }"
+}
+```
+
 
 See JSON request examples:
 
@@ -74,20 +133,20 @@ See JSON request examples:
   "sets": [
     {
       "success": true,
-      "documentNo": "BCINT000123",
-      "insertedCount": 1,
+      "documentNo": "BCINT000478",
+      "insertedCount": 2,
       "failedCount": 0,
       "failedLines": []
     },
     {
       "success": true,
-      "documentNo": "BCINT000124",
+      "documentNo": "BCINT000479",
       "insertedCount": 1,
       "failedCount": 0,
       "failedLines": []
     }
   ],
-  "totalInserted": 2,
+  "totalInserted": 3,
   "totalFailed": 0
 }
 ```
