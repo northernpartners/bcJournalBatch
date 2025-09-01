@@ -2,7 +2,7 @@
   "id": "da9deddc-6450-4a18-af9e-97a510c28d94",
   "name": "JournalBatch",
   "publisher": "Default Publisher",
-  "version": "1.0.1.4",
+  "version": "1.0.1.5",
   "brief": "Custom Journal Batch API",
   "description": "Posts journal lines in batches via custom API",
   "platform": "23.0.0.0",

@@ -2,79 +2,121 @@ codeunit 50104 "JB Batch Helpers"
 {
     procedure EnsureBatchExists(TemplateName: Code[10]; var BatchName: Code[10])
     var
-        Batch: Record "Gen. Journal Batch";
-        Tmpl: Record "Gen. Journal Template";
-        NewName: Code[10];
+        GenJnlBatch: Record "Gen. Journal Batch";
+        UseName: Code[10];
     begin
-        if not Tmpl.Get(TemplateName) then begin
-            Tmpl.Init();
-            Tmpl.Validate(Name, TemplateName);
-            Tmpl.Validate(Type, Tmpl.Type::General);
-            Tmpl.Insert(true);
+        // If a batch name was supplied, try to use it (sanitized to Code[10]).
+        if BatchName <> '' then begin
+            UseName := SanitizeBatchName(BatchName);
+
+            if UseName = '' then
+                UseName := GenerateApiBatchName();
+
+            // If batch with this name already exists under the template, we are done.
+            GenJnlBatch.Reset();
+            GenJnlBatch.SetRange("Journal Template Name", TemplateName);
+            GenJnlBatch.SetRange(Name, UseName);
+            if not GenJnlBatch.FindFirst() then begin
+                // Create new batch with requested/sanitized name
+                Clear(GenJnlBatch);
+                GenJnlBatch.Init();
+                GenJnlBatch.Validate("Journal Template Name", TemplateName);
+                GenJnlBatch.Validate(Name, UseName);
+                GenJnlBatch.Insert(true);
+            end;
+
+            BatchName := UseName;
+            exit;
         end;
 
-        if (BatchName <> '') and Batch.Get(TemplateName, BatchName) then
+        // No batch name supplied -> create an APIxxxxx batch
+        UseName := GenerateApiBatchName();
+
+        Clear(GenJnlBatch);
+        GenJnlBatch.Init();
+        GenJnlBatch.Validate("Journal Template Name", TemplateName);
+        GenJnlBatch.Validate(Name, UseName);
+        GenJnlBatch.Insert(true);
+
+        BatchName := UseName;
+    end;
+
+    procedure EnsureBatchNoSeries(TemplateName: Code[10]; BatchName: Code[10]; NoSeriesCode: Code[20])
+    var
+        GenJnlBatch: Record "Gen. Journal Batch";
+    begin
+        if NoSeriesCode = '' then
             exit;
 
-        NewName := MakeApiBatchName();
-        Batch.Init();
-        Batch.Validate("Journal Template Name", TemplateName);
-        Batch.Validate(Name, NewName);
-        Batch.Insert(true);
-
-        BatchName := NewName;
-    end;
-
-    procedure EnsureBatchNoSeries(TemplateName: Code[10]; BatchName: Code[10]; RequiredSeries: Code[20])
-    var
-        Batch: Record "Gen. Journal Batch";
-    begin
-        if not Batch.Get(TemplateName, BatchName) then
-            Error('Batch %1/%2 not found after creation.', TemplateName, BatchName);
-
-        if Batch."No. Series" <> RequiredSeries then begin
-            Batch.Validate("No. Series", RequiredSeries);
-            Batch.Modify(true);
+        GenJnlBatch.Reset();
+        GenJnlBatch.SetRange("Journal Template Name", TemplateName);
+        GenJnlBatch.SetRange(Name, BatchName);
+        if GenJnlBatch.FindFirst() then begin
+            if GenJnlBatch."No. Series" <> NoSeriesCode then begin
+                GenJnlBatch.Validate("No. Series", NoSeriesCode);
+                GenJnlBatch.Modify(true);
+            end;
         end;
     end;
 
-    procedure GetNextDocumentNo(TemplateName: Code[10]; BatchName: Code[10]): Code[20]
+    procedure GetNextDocumentNo(TemplateName: Code[10]; BatchName: Code[10]) DocNo: Code[20]
     var
-        Batch: Record "Gen. Journal Batch";
+        GenJnlBatch: Record "Gen. Journal Batch";
         NoSeries: Codeunit "No. Series";
-        NextNo: Code[20];
+        UsageDate: Date;
     begin
-        if not Batch.Get(TemplateName, BatchName) then
-            Error('Batch %1/%2 not found.', TemplateName, BatchName);
+        GenJnlBatch.Reset();
+        GenJnlBatch.SetRange("Journal Template Name", TemplateName);
+        GenJnlBatch.SetRange(Name, BatchName);
+        if not GenJnlBatch.FindFirst() then
+            Error('Batch %1 under template %2 not found.', BatchName, TemplateName);
 
-        if Batch."No. Series" = '' then
-            Error('Batch %1/%2 has no No. Series. Assign a series first.', TemplateName, BatchName);
+        if GenJnlBatch."No. Series" = '' then
+            Error('Batch %1 has no "No. Series" assigned.', BatchName);
 
-        NextNo := NoSeries.GetNextNo(Batch."No. Series", WorkDate());
-        exit(NextNo);
+        UsageDate := WorkDate();
+        DocNo := NoSeries.GetNextNo(GenJnlBatch."No. Series", UsageDate);
+        if DocNo = '' then
+            Error('Unable to retrieve next number from No. Series %1.', GenJnlBatch."No. Series");
     end;
 
-    procedure GetNextLineNo(TemplateName: Code[10]; BatchName: Code[10]): Integer
+    procedure GetNextLineNo(TemplateName: Code[10]; BatchName: Code[10]) NextNo: Integer
     var
-        L: Record "Gen. Journal Line";
+        GenJnlLine: Record "Gen. Journal Line";
     begin
-        L.Reset();
-        L.SetRange("Journal Template Name", TemplateName);
-        L.SetRange("Journal Batch Name", BatchName);
-        L.SetCurrentKey("Journal Template Name", "Journal Batch Name", "Line No.");
-        if L.FindLast() then
-            exit(L."Line No." + 10000)
+        GenJnlLine.Reset();
+        GenJnlLine.SetRange("Journal Template Name", TemplateName);
+        GenJnlLine.SetRange("Journal Batch Name", BatchName);
+        if GenJnlLine.FindLast() then
+            exit(GenJnlLine."Line No." + 10000)
         else
             exit(10000);
     end;
 
-    procedure MakeApiBatchName(): Code[10]
+    // --------- helpers ---------
+
+    local procedure SanitizeBatchName(InputName: Text): Code[10]
     var
-        g: Guid;
-        s: Text;
+        T: Text;
     begin
-        g := CreateGuid();
-        s := DelChr(Format(g), '=', '{}-');
-        exit(CopyStr('API' + UpperCase(s), 1, 10));
+        T := UpperCase(InputName);
+        // Remove spaces; add further sanitization if needed
+        T := DelChr(T, '=', ' ');
+        exit(CopyStr(T, 1, 10)); // field is Code[10]
+    end;
+
+    local procedure GenerateApiBatchName(): Code[10]
+    var
+        G: Guid;
+        T: Text;
+        Suffix: Text;
+    begin
+        // Use GUID, strip braces and hyphens, take first 7 chars after 'API'
+        G := CreateGuid();
+        T := Format(G);
+        // remove '{', '}', '-' characters
+        T := DelChr(T, '=', '{}-');
+        Suffix := CopyStr(UpperCase(T), 1, 7);
+        exit(CopyStr('API' + Suffix, 1, 10));
     end;
 }
