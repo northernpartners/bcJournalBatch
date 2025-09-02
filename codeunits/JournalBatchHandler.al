@@ -17,7 +17,7 @@ codeunit 50101 "Journal Batch Handler"
         PostingTok: JsonToken;
         PostingTxt: Text;
     begin
-        TemplateName := 'BCINT';
+        TemplateName := 'GENERAL';
         Clear(ResultsArr);
         TopPostingDate := 0D;
 
@@ -36,9 +36,9 @@ codeunit 50101 "Journal Batch Handler"
                 TopPostingDate := 0D; // ignore invalid -> will fall back later
         end;
 
-        // ensure template + batch, and force No. Series = BCINT
+        // ensure template + batch, and force No. Series = GJNL-GEN
         BatchHelpers.EnsureBatchExists(TemplateName, BatchName);
-        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, 'BCINT');
+        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, 'GJNL-GEN');
 
         // Either lineSets[] or lines[]
         if InObj.Get('lineSets', LineSetsTok) and LineSetsTok.IsArray() then

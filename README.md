@@ -10,9 +10,9 @@ Custom unbound OData v4 action to insert **General Journal Lines** in Business C
 - **Authentication**: AAD Bearer token
 
 - **Batch Handling**:
-  - Always uses **Journal Template = BCINT**
+  - Always uses **Journal Template = GENERAL**
   - If `batchName` not provided → batch auto-created (e.g. `API280C8B4`)
-  - Auto-sets batch **No. Series = BCINT**
+  - Auto-sets batch **No. Series = GJNL-GEN**
 
 - **Document Numbering**:
   - Each **line set** consumes one Document No. from the batch’s No. Series
@@ -46,7 +46,7 @@ Custom unbound OData v4 action to insert **General Journal Lines** in Business C
 ## JSON Contract
 
 Top-level keys:
-- `batchName` (optional) → existing or auto-created under BCINT
+- `batchName` (optional) → existing or auto-created under GENERAL
 - `postingDate` (optional) → default for all sets/lines if not overridden
 - `lineSets` (array) → multiple sets of lines
 - `lines` (array) → single set of lines (backwards compatible)
@@ -109,7 +109,7 @@ See JSON request examples:
 
 ## Setup
 
-- Ensure No. Series `BCINT` exists and is valid; the app sets each auto-created batch to use it.
+- Ensure No. Series `GJNL-GEN` exists and is valid; the app sets each auto-created batch to use it.
 - For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
 
 ## Build & deploy
@@ -151,7 +151,7 @@ See JSON request examples:
 - **400 Bad Request**: Supported MIME type not found
     - Ensure Content-Type: application/json and that body shape is { "requestBody": "<stringified-json>" }.
 - **“Journal Batch Name … DEFAULT cannot be found”**
-    - M2 auto‑creates batch if batchName empty; ensure BCINT No. Series exists.
+    - M2 auto‑creates batch if batchName empty; ensure GENERAL No. Series exists.
 - **Dimensions not visible** on line
     - Ensure CONTRACT/ACTPERIOD are mapped to Shortcut Dimension 1/2 in General Ledger Setup; otherwise they’ll be in the Dimension Set but not in visible columns.
 
@@ -163,7 +163,7 @@ Goal: When post=true, post each lineSet (one Document No. per set) via standard 
 - AL changes
 - Add post (bool) at top-level or per set (default false).
 - After inserting a set’s lines (same Document No.), run posting:
-- Filter Gen. Journal Line by Template = BCINT, Batch = <batchName>, Document No. = <DocNo>
+- Filter Gen. Journal Line by Template = GENERAL, Batch = <batchName>, Document No. = <DocNo>
 - Call Codeunit "Gen. Jnl.-Post" RunWithCheck(GenJnlLine).
 - Add result fields per set: posted (bool), postErrors (array), entryNoStart/entryNoEnd (optional, if you want to return G/L Entry range).
 - Acceptance
