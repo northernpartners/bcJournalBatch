@@ -103,7 +103,7 @@ See JSON request examples:
   "totalInserted": 2,
   "totalFailed": 1
 }
-````
+```
 
 > On validation issues (per-line), the corresponding set returns failedCount > 0 and a failedLines array with { index, error } entries; other sets continue unaffected.
 
@@ -111,38 +111,39 @@ See JSON request examples:
 
 - Ensure No. Series `GJNL-GEN` exists and is valid; the app sets each auto-created batch to use it.
 - For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
+- **Allowed object ID range:** 50110–50149
+- **App version:** 1.0.1.8
 
 ## Build & deploy
 
 1. Update app.json version.
-2.	Build: AL: Package → ./.alpackages/JournalBatch_<version>.app.
-3.	Deploy: Extension Management → Upload → Install.
-4.	Verify: $metadata contains JournalBatchHandler_PostJournalBatch.
-5.	Test with Postman (company name or id).
+2. Build: AL: Package → ./.alpackages/JournalBatch_<version>.app.
+3. Deploy: Extension Management → Upload → Install.
+4. Verify: $metadata contains JournalBatchHandler_PostJournalBatch.
+5. Test with Postman (company name or id).
 
 
 ## Codeunit overview
 
-- **50101** Journal Batch Handler (ServiceEnabled)
+- **50114** Journal Batch Handler (ServiceEnabled)
     - Responsibility: parse payload, orchestrate flow, build response.
     - Keeps: PostJournalBatch, minimal glue logic only.
 
-- **50102** JB Core
-
+- **50112** JB Core
     - Responsibility: iterate sets/lines; call builders; collect errors; summarize.
 
-- **50103** JB Line Builder
-
+- **50110** JB Line Builder
     - Responsibility: build & insert a single Gen. Journal Line from a JsonObject; field validations; mappings (MapAccountType, MapDocumentType).
     - Pattern: expose a public wrapper that calls a private [TryFunction] to catch validation errors and return true/false + GetLastErrorText().
 
-- **50104** JB Batch Helpers
-
+- **50113** JB Batch Helpers
     - Responsibility: ensure template/batch; assign/verify No. Series; GetNextDocumentNo; GetNextLineNo.
 
-- **50105** JB Dimension Helpers
-
+- **50111** JB Dimension Helpers
     - Responsibility: ensure dim values exist (CONTRACT, ACTPERIOD), compute/merge Dimension Set ID, apply to line.
+
+- **50115** CustomJournalAPI (Page)
+    - API page for custom journal batch actions.
 
 ## Troubleshooting
 
