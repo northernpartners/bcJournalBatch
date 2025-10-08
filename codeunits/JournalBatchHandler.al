@@ -36,9 +36,9 @@ codeunit 50114 "Journal Batch Handler"
                 TopPostingDate := 0D; // ignore invalid -> will fall back later
         end;
 
-        // ensure template + batch, and force No. Series = GJNL-GEN
+        // ensure template + batch, and force No. Series = SALPAYOUT
         BatchHelpers.EnsureBatchExists(TemplateName, BatchName);
-        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, 'GJNL-GEN');
+        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, 'SALPAYOUT');
 
         // Either lineSets[] or lines[]
         if InObj.Get('lineSets', LineSetsTok) and LineSetsTok.IsArray() then

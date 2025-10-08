@@ -12,7 +12,7 @@ Custom unbound OData v4 action to insert **General Journal Lines** in Business C
 - **Batch Handling**:
   - Always uses **Journal Template = GENERAL**
   - If `batchName` not provided → batch auto-created (e.g. `API280C8B4`)
-  - Auto-sets batch **No. Series = GJNL-GEN**
+  - Auto-sets batch **No. Series = SALPAYOUT**
 
 - **Document Numbering**:
   - Each **line set** consumes one Document No. from the batch’s No. Series
@@ -109,7 +109,7 @@ See JSON request examples:
 
 ## Setup
 
-- Ensure No. Series `GJNL-GEN` exists and is valid; the app sets each auto-created batch to use it.
+- Ensure No. Series `SALPAYOUT` exists and is valid; the app sets each auto-created batch to use it.
 - For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
 - **Allowed object ID range:** 50110–50149
 - **App version:** 1.0.1.8
