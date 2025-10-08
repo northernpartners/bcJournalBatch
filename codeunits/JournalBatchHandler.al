@@ -1,4 +1,4 @@
-codeunit 50101 "Journal Batch Handler"
+codeunit 50114 "Journal Batch Handler"
 {
     [ServiceEnabled]
     procedure PostJournalBatch(requestBody: Text): Text

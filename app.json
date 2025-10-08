@@ -2,7 +2,7 @@
   "id": "da9deddc-6450-4a18-af9e-97a510c28d94",
   "name": "JournalBatch",
   "publisher": "Northern Partners ApS",
-  "version": "1.0.1.7",
+  "version": "1.0.1.8",
   "brief": "Custom Journal Batch API",
   "description": "Posts journal lines in batches via custom API",
   "platform": "23.0.0.0",
@@ -11,7 +11,7 @@
   "runtime": "11.0",
   "idRanges": [
     {
-      "from": 50100,
+      "from": 50110,
       "to": 50149
     }
   ],

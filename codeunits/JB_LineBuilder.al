@@ -1,4 +1,4 @@
-codeunit 50103 "JB Line Builder"
+codeunit 50110 "JB Line Builder"
 {
     procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date; var ExternalId: Text) ok: Boolean
     begin

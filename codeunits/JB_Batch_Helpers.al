@@ -1,4 +1,4 @@
-codeunit 50104 "JB Batch Helpers"
+codeunit 50113 "JB Batch Helpers"
 {
     procedure EnsureBatchExists(TemplateName: Code[10]; var BatchName: Code[10])
     var

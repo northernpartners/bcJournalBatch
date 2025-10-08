@@ -1,4 +1,4 @@
-codeunit 50105 "JB Dimension Helpers"
+codeunit 50111 "JB Dimension Helpers"
 {
     procedure ApplyContractAndActPeriodDims(var GenJnlLine: Record "Gen. Journal Line"; ContractCode: Code[20]; ContractName: Text[50]; ActPeriodCode: Code[20]; ActPeriodName: Text[50])
     begin

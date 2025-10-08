@@ -1,4 +1,4 @@
-codeunit 50102 "JB Core"
+codeunit 50112 "JB Core"
 {
     procedure HandleMultipleSets(LineSetsArr: JsonArray; TemplateName: Code[10]; BatchName: Code[10]; TopPostingDate: Date): JsonArray
     var

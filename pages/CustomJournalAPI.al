@@ -1,4 +1,4 @@
-page 50100 "Custom Journal API"
+page 50115 "Custom Journal API"
 {
     PageType = Card;
     SourceTable = "Company Information";
