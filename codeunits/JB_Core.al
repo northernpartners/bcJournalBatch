@@ -130,15 +130,16 @@ codeunit 50112 "JB Core"
         ExternalId: Text;
         JVal: JsonValue;
         IdInt: Integer;
+        IsFirstLineInSet: Boolean;
     begin
         Clear(ResObj);
         Clear(ErrorsArr);
         Clear(ExternalIdsArr);
         insertedCnt := 0;
         failedCnt := 0;
+        DocNo := '';
 
-        // one doc no. per set (consumes the series)
-        DocNo := BatchHelpers.GetNextDocumentNo(TemplateName, BatchName);
+        // No longer consuming document number here - let SetUpNewLine handle it per set
 
         for i := 0 to LinesArr.Count() - 1 do begin
             LinesArr.Get(i, LineTok);
@@ -148,7 +149,8 @@ codeunit 50112 "JB Core"
             end else begin
                 LineObj := LineTok.AsObject();
                 ExternalId := '';
-                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, ExternalId);
+                IsFirstLineInSet := (i = 0); // First line gets SetUpNewLine, rest copy its DocNo
+                ok := LineBuilder.InsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, IsFirstLineInSet, ExternalId);
                 if ok then begin
                     insertedCnt += 1;
                     if ExternalId <> '' then begin

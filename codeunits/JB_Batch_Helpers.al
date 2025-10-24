@@ -59,6 +59,9 @@ codeunit 50113 "JB Batch Helpers"
         end;
     end;
 
+    // DEPRECATED: This method consumes the number series immediately.
+    // Use GetLastLineForSetup instead and let SetUpNewLine suggest the document number.
+    // Keeping for backward compatibility or if direct number consumption is needed.
     procedure GetNextDocumentNo(TemplateName: Code[10]; BatchName: Code[10]) DocNo: Code[20]
     var
         GenJnlBatch: Record "Gen. Journal Batch";
@@ -78,6 +81,23 @@ codeunit 50113 "JB Batch Helpers"
         DocNo := NoSeries.GetNextNo(GenJnlBatch."No. Series", UsageDate);
         if DocNo = '' then
             Error('Unable to retrieve next number from No. Series %1.', GenJnlBatch."No. Series");
+    end;
+
+    procedure GetLastLineForSetup(TemplateName: Code[10]; BatchName: Code[10]; var LastLine: Record "Gen. Journal Line"): Boolean
+    var
+        GenJnlLine: Record "Gen. Journal Line";
+    begin
+        // Find the last line in the batch to use as a template for SetUpNewLine
+        // Returns true if a line was found, false if the batch is empty
+        Clear(LastLine);
+        GenJnlLine.Reset();
+        GenJnlLine.SetRange("Journal Template Name", TemplateName);
+        GenJnlLine.SetRange("Journal Batch Name", BatchName);
+        if GenJnlLine.FindLast() then begin
+            LastLine := GenJnlLine;
+            exit(true);
+        end;
+        exit(false);
     end;
 
     procedure GetNextLineNo(TemplateName: Code[10]; BatchName: Code[10]) NextNo: Integer

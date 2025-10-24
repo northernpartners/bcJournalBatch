@@ -1,4 +1,12 @@
-# JournalBatch Extension (M2)
+# JournalBa- **Batch Handling**:
+  - Always uses **Journal Template = GENERAL**
+  - If `batchName` not provided → batch auto-created (e.g. `API280C8B4`)
+  - Uses the **No. Series** already configured on the batch (or template default)
+
+- **Document Numbering**:
+  - Each **line set** gets a unique Document No. from the batch's No. Series
+  - All lines in a set share the same Document No.
+  - Numbers are **suggested** (not consumed) until posting (ECIT approach)nsion (M2)
 
 Custom unbound OData v4 action to insert **General Journal Lines** in Business Central in **sets**, with automatic batch handling, document numbering, dimension support, and external line IDs.
 
@@ -12,7 +20,7 @@ Custom unbound OData v4 action to insert **General Journal Lines** in Business C
 - **Batch Handling**:
   - Always uses **Journal Template = GENERAL**
   - If `batchName` not provided → batch auto-created (e.g. `API280C8B4`)
-  - Auto-sets batch **No. Series = SALPAYOUT**
+  - Auto-sets batch **No. Series = SALPAY**
 
 - **Document Numbering**:
   - Each **line set** consumes one Document No. from the batch’s No. Series
@@ -109,8 +117,21 @@ See JSON request examples:
 
 ## Setup
 
-- Ensure No. Series `SALPAYOUT` exists and is valid; the app sets each auto-created batch to use it.
-- For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup.
+- **Number Series Configuration**:
+  - Configure your preferred number series (e.g., `SALPAY`, `GJNL`, etc.) with these settings:
+    - **Default Nos.**: ✅ YES (enables automatic document number suggestion)
+    - **Allow Gaps in Nos.**: ✅ YES (required - allows deletion of unposted lines without consuming numbers)
+    - **Implementation**: Sequence (automatically set when "Allow Gaps" is enabled)
+    - **Manual Nos.**: Optional (NO recommended for API use)
+  
+- **Batch Configuration**:
+  - Set your number series on the batch's **"No. Series"** field (NOT "Posting No. Series")
+  - Leave **"Posting No. Series"** blank (will use same number when posting)
+  - This allows `SetUpNewLine` to suggest numbers without consuming the series
+  - You can configure this on the GENERAL template (applies to all new batches) or per individual batch
+
+- **Dimensions** (Optional):
+  - For dimensions to appear in the visible line columns (not just in the dimension set), map `CONTRACT` and `ACTPERIOD` to Shortcut Dimensions in General Ledger Setup
 - **Allowed object ID range:** 50110–50149
 - **App version:** 1.0.1.8
 

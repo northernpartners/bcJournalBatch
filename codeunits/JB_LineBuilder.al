@@ -1,15 +1,16 @@
 codeunit 50110 "JB Line Builder"
 {
-    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date; var ExternalId: Text) ok: Boolean
+    procedure InsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; var DocNo: Code[20]; DefaultPostingDate: Date; IsFirstLineInSet: Boolean; var ExternalId: Text) ok: Boolean
     begin
-        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, ExternalId);
+        ok := TryInsertLineWithDoc(LineObj, TemplateName, BatchName, DocNo, DefaultPostingDate, IsFirstLineInSet, ExternalId);
         if not ok then; // keep GetLastErrorText() for caller
     end;
 
     [TryFunction]
-    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; DocNo: Code[20]; DefaultPostingDate: Date; var ExternalId: Text)
+    local procedure TryInsertLineWithDoc(LineObj: JsonObject; TemplateName: Code[10]; BatchName: Code[10]; var DocNo: Code[20]; DefaultPostingDate: Date; IsFirstLineInSet: Boolean; var ExternalId: Text)
     var
         GenJnlLine: Record "Gen. Journal Line";
+        LastLine: Record "Gen. Journal Line";
         Tok: JsonToken;
         D: Date;
         Amt: Decimal;
@@ -31,6 +32,7 @@ codeunit 50110 "JB Line Builder"
         HaveActPeriod: Boolean;
         PostingTxt: Text;
         LinePostingDate: Date;
+        HasLastLine: Boolean;
     begin
         // --- capture external id (string or number) ---
         ExternalId := '';
@@ -42,10 +44,30 @@ codeunit 50110 "JB Line Builder"
         GenJnlLine.Validate("Journal Batch Name", BatchName);
 
         LineNo := BatchHelpers.GetNextLineNo(TemplateName, BatchName);
-        GenJnlLine.Validate("Line No.", LineNo);
+        GenJnlLine."Line No." := LineNo;
 
-        // same Document No. for this set
-        GenJnlLine.Validate("Document No.", DocNo);
+        // Use SetUpNewLine to simulate UI behavior (doesn't consume number series)
+        if IsFirstLineInSet then begin
+            // For the first line of a set, we need to determine the document number
+            HasLastLine := BatchHelpers.GetLastLineForSetup(TemplateName, BatchName, LastLine);
+
+            if HasLastLine then begin
+                // If there are existing lines, increment from the last document number
+                // This ensures each set gets a unique document number
+                DocNo := IncrementDocNo(LastLine."Document No.");
+            end else begin
+                // If batch is empty, use SetUpNewLine to get the first number from the series
+                Clear(LastLine);
+                GenJnlLine.SetUpNewLine(LastLine, 0, false);
+                DocNo := GenJnlLine."Document No.";
+            end;
+
+            // Assign the document number to this first line
+            GenJnlLine."Document No." := DocNo;
+        end else begin
+            // For subsequent lines in the set, use the same document number
+            GenJnlLine."Document No." := DocNo;
+        end;
 
         // documentType -> enum
         if LineObj.Get('documentType', Tok) and Tok.IsValue() then begin
@@ -225,5 +247,12 @@ codeunit 50110 "JB Line Builder"
                     NameOut := CopyStr(NameTxt, 1, MaxStrLen(NameOut));
             end;
         end;
+    end;
+
+    local procedure IncrementDocNo(CurrentDocNo: Code[20]): Code[20]
+    begin
+        // Increment the document number by 1 using built-in IncStr
+        // Example: "PAYD000001" becomes "PAYD000002"
+        exit(IncStr(CurrentDocNo));
     end;
 }
