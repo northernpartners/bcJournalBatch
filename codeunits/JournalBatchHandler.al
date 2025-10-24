@@ -36,9 +36,10 @@ codeunit 50114 "Journal Batch Handler"
                 TopPostingDate := 0D; // ignore invalid -> will fall back later
         end;
 
-        // ensure template + batch, and force No. Series = SALPAYOUT
+        // ensure template + batch, and set No. Series = SALDRAFT, Posting No. Series = SALPOST
         BatchHelpers.EnsureBatchExists(TemplateName, BatchName);
-        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, 'SALPAYOUT');
+        // Do NOT force a draft series; ensure only the posting series is set to SALPOST
+        BatchHelpers.EnsureBatchNoSeries(TemplateName, BatchName, '');
 
         // Either lineSets[] or lines[]
         if InObj.Get('lineSets', LineSetsTok) and LineSetsTok.IsArray() then

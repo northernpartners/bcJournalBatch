@@ -45,39 +45,26 @@ codeunit 50113 "JB Batch Helpers"
     var
         GenJnlBatch: Record "Gen. Journal Batch";
     begin
-        if NoSeriesCode = '' then
-            exit;
-
+        // If caller didn't provide a draft No. Series, we only ensure Posting No. Series.
         GenJnlBatch.Reset();
         GenJnlBatch.SetRange("Journal Template Name", TemplateName);
         GenJnlBatch.SetRange(Name, BatchName);
-        if GenJnlBatch.FindFirst() then begin
+        if not GenJnlBatch.FindFirst() then
+            exit;
+
+        // If caller explicitly provided a NoSeriesCode, set it (optional draft series).
+        if NoSeriesCode <> '' then begin
             if GenJnlBatch."No. Series" <> NoSeriesCode then begin
                 GenJnlBatch.Validate("No. Series", NoSeriesCode);
                 GenJnlBatch.Modify(true);
             end;
         end;
-    end;
 
-    procedure GetNextDocumentNo(TemplateName: Code[10]; BatchName: Code[10]) DocNo: Code[20]
-    var
-        GenJnlBatch: Record "Gen. Journal Batch";
-        NoSeries: Codeunit "No. Series";
-        UsageDate: Date;
-    begin
-        GenJnlBatch.Reset();
-        GenJnlBatch.SetRange("Journal Template Name", TemplateName);
-        GenJnlBatch.SetRange(Name, BatchName);
-        if not GenJnlBatch.FindFirst() then
-            Error('Batch %1 under template %2 not found.', BatchName, TemplateName);
-
-        if GenJnlBatch."No. Series" = '' then
-            Error('Batch %1 has no "No. Series" assigned.', BatchName);
-
-        UsageDate := WorkDate();
-        DocNo := NoSeries.GetNextNo(GenJnlBatch."No. Series", UsageDate);
-        if DocNo = '' then
-            Error('Unable to retrieve next number from No. Series %1.', GenJnlBatch."No. Series");
+        // Always ensure Posting No. Series is the posted-series (SALPOST).
+        if GenJnlBatch."Posting No. Series" <> 'SALPOST' then begin
+            GenJnlBatch.Validate("Posting No. Series", 'SALPOST');
+            GenJnlBatch.Modify(true);
+        end;
     end;
 
     procedure GetNextLineNo(TemplateName: Code[10]; BatchName: Code[10]) NextNo: Integer

@@ -130,6 +130,9 @@ codeunit 50112 "JB Core"
         ExternalId: Text;
         JVal: JsonValue;
         IdInt: Integer;
+        G: Guid;
+        T: Text;
+        Suffix: Text;
     begin
         Clear(ResObj);
         Clear(ErrorsArr);
@@ -137,8 +140,14 @@ codeunit 50112 "JB Core"
         insertedCnt := 0;
         failedCnt := 0;
 
-        // one doc no. per set (consumes the series)
-        DocNo := BatchHelpers.GetNextDocumentNo(TemplateName, BatchName);
+        // NEW: generate a synthetic draft id per set (does NOT consume any No. Series).
+        // This draft id is saved to "External Document No." by the Line Builder (if payload didn't provide one)
+        // and returned to clients in the response as documentNo.
+        G := CreateGuid();
+        T := Format(G);
+        T := DelChr(T, '=', '{}-');
+        Suffix := CopyStr(UpperCase(T), 1, 7);
+        DocNo := CopyStr('API' + Suffix, 1, 20);
 
         for i := 0 to LinesArr.Count() - 1 do begin
             LinesArr.Get(i, LineTok);
@@ -169,9 +178,9 @@ codeunit 50112 "JB Core"
         end;
 
         ResObj.Add('success', failedCnt = 0);
-        ResObj.Add('documentNo', DocNo);
+        ResObj.Add('documentNo', DocNo); // now contains the synthetic draft id
         ResObj.Add('insertedCount', insertedCnt);
-        ResObj.Add('externalIds', ExternalIdsArr); // NEW
+        ResObj.Add('externalIds', ExternalIdsArr);
         ResObj.Add('failedCount', failedCnt);
         ResObj.Add('failedLines', ErrorsArr);
         exit(ResObj);

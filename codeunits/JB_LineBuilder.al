@@ -44,8 +44,11 @@ codeunit 50110 "JB Line Builder"
         LineNo := BatchHelpers.GetNextLineNo(TemplateName, BatchName);
         GenJnlLine.Validate("Line No.", LineNo);
 
-        // same Document No. for this set
-        GenJnlLine.Validate("Document No.", DocNo);
+        // Write the draft identifier into the Document No. field so the line is valid in the journal UI.
+        // Posting helper will replace these draft values with actual posted numbers from SALPOST at post time.
+        if DocNo <> '' then begin
+            GenJnlLine.Validate("Document No.", DocNo);
+        end;
 
         // documentType -> enum
         if LineObj.Get('documentType', Tok) and Tok.IsValue() then begin
